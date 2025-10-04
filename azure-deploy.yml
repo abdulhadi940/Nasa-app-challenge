@@ -1,0 +1,42 @@
+name: Azure WebApp CI
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build server
+        run: |
+          cd server
+          npm install
+          npm run build || echo "no build step for server"
+
+      - name: Build client
+        run: |
+          cd client
+          npm install
+          npm run build
+
+      - name: Prepare artifact
+        run: |
+          mkdir -p artifact
+          cp -r client/build artifact/
+          cp -r server/* artifact/ || true
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./artifact
